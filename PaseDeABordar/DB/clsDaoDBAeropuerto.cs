@@ -228,7 +228,94 @@ namespace PaseDeABordar.DB
                 conn?.Close();
             }
         }
+
+        public List<string> ObtenerTodosLosVuelos()
+        {
+            List<string> vuelos = new List<string>();
+            MySqlConnection conn = null;
+            MySqlCommand cmd = null;
+            MySqlDataReader reader = null;
+
+            try
+            {
+                conn = new MySqlConnection(conexion);
+                conn.Open();
+
+                string query = "SELECT NumeroVuelo FROM vuelos";
+                cmd = new MySqlCommand(query, conn);
+                reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    vuelos.Add(reader["NumeroVuelo"].ToString());
+                }
+
+                return vuelos;
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException("Error al obtener los números de vuelo.", ex);
+            }
+            finally
+            {
+                reader?.Close();
+                cmd?.Dispose();
+                conn?.Close();
+            }
+        }
+
+
+        public List<Pasajero> ObtenerPasajerosSinCheckInPorVuelo(string numeroVuelo)
+        {
+            List<Pasajero> lista = new List<Pasajero>();
+            MySqlConnection conn = null;
+            MySqlCommand cmd = null;
+            MySqlDataReader reader = null;
+
+            try
+            {
+                conn = new MySqlConnection(conexion);
+                conn.Open();
+
+                string query = @"SELECT p.Nombre, p.Apellido, p.Destino, p.EsMenor
+                         FROM boletos b
+                         JOIN pasajeros p ON b.NumeroPasajero = p.NumeroPasajero
+                         WHERE b.CheckInRealizado = 0 AND b.NumeroVuelo = @NumeroVuelo";
+
+                cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@NumeroVuelo", numeroVuelo);
+                reader = cmd.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    var pasajero = new Pasajero
+                    {
+                        Nombre = reader["Nombre"].ToString(),
+                        Apellido = reader["Apellido"].ToString(),
+                        Destino = reader["Destino"].ToString(),
+                        EsMenor = Convert.ToBoolean(reader["EsMenor"])
+                    };
+                    lista.Add(pasajero);
+                }
+
+                return lista;
+            }
+            catch (Exception ex)
+            {
+                throw new ApplicationException("Error al obtener pasajeros sin check-in por vuelo.", ex);
+            }
+            finally
+            {
+                reader?.Close();
+                cmd?.Dispose();
+                conn?.Close();
+            }
+        }
+
+
         #endregion
+
+
 
     }
 }

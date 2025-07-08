@@ -51,6 +51,9 @@ namespace PaseDeABordar
             txtNombre.Enabled = false;
             txtAsiento.Enabled = false;
 
+            var vuelos = daoDatos.ObtenerTodosLosVuelos();
+            cmbVuelos.Items.Clear();
+            cmbVuelos.Items.AddRange(vuelos.ToArray());
 
             lisviewPasagerosFaltantes.View = View.Details;
             lisviewPasagerosFaltantes.Columns.Add("Nombre", 150);
@@ -63,6 +66,7 @@ namespace PaseDeABordar
         #endregion
 
         #region metodos auxiliares
+
         /// <summary>
         /// Genera e imprime una tarjeta de embarque con diseño de un pase de abordar, incluyendo información del pasajero,
         /// detalles del vuelo, código de barras y diseño visual profesional con secciones diferenciadas.
@@ -107,7 +111,7 @@ namespace PaseDeABordar
             currentY += lineSpacing;
 
             g.DrawString(datos.Pasajero.Apellido.ToUpper(), fontDatos, Brushes.Black, leftMargin, currentY);
-            currentY += lineSpacing*2;
+            currentY += lineSpacing * 2;
 
             g.DrawString("FLIGHT " + datos.Vuelo.NumeroVuelo, fontDatos, Brushes.Black, leftMargin, currentY);
             currentY += lineSpacing;
@@ -162,7 +166,7 @@ namespace PaseDeABordar
             g.DrawString("TIME " + datos.Vuelo.FechaHoraSalida.ToString("HH:mm"), fontDatos, Brushes.Black, rightSection, currentY);
             currentY += lineSpacing;
 
-           
+
 
             if (datos.Pasajero.EsMenor)
             {
@@ -270,11 +274,26 @@ namespace PaseDeABordar
         /// </summary>
         private void txtClave_TextChanged(object sender, EventArgs e)
         {
-            numeroBoleto = txtClave.Text.Trim(); // Guarda para que ImprimirPagina lo use
+            /*
+            numeroBoleto = txtClave.Text.Trim();
             var datos = daoDatos.ObtenerDatosPasajero(numeroBoleto);
 
             if (datos != null)
             {
+                // Obtener vuelo seleccionado
+                string vueloSeleccionado = cmbVuelos.SelectedItem?.ToString();
+
+                // Verificar si el boleto pertenece a ese vuelo
+                if (!string.IsNullOrEmpty(vueloSeleccionado) && datos.Vuelo.NumeroVuelo != vueloSeleccionado)
+                {
+                    MessageBox.Show("El pasajero no pertenece a este vuelo.");
+                    txtClave.Clear();
+                    txtNombre.Clear();
+                    txtAsiento.Clear();
+                    return;
+                }
+
+                // Si todo bien, mostrar datos
                 txtNombre.Text = datos.Pasajero.NombreCompleto;
                 txtAsiento.Text = datos.NumeroAsiento;
             }
@@ -283,6 +302,7 @@ namespace PaseDeABordar
                 txtNombre.Text = "";
                 txtAsiento.Text = "";
             }
+            */
         }
 
         /// <summary>
@@ -363,6 +383,80 @@ namespace PaseDeABordar
             pd.Print();
         }
         #endregion
+
+        private void panel2_Paint(object sender, PaintEventArgs e)
+        {
+
+        }
+
+        private void cmbVuelos_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            string vueloSeleccionado = cmbVuelos.SelectedItem?.ToString();
+            if (string.IsNullOrWhiteSpace(vueloSeleccionado)) return;
+
+            lisviewPasagerosFaltantes.Items.Clear();
+            var faltantes = daoDatos.ObtenerPasajerosSinCheckInPorVuelo(vueloSeleccionado);
+
+            foreach (var pasajero in faltantes)
+            {
+                ListViewItem item = new ListViewItem(pasajero.Nombre + " " + pasajero.Apellido);
+                item.SubItems.Add(pasajero.Destino);
+                item.SubItems.Add(pasajero.EsMenor ? "Sí" : "No");
+                lisviewPasagerosFaltantes.Items.Add(item);
+            }
+            if(txtClave.Text.Length > 13)
+            {
+                MessageBox.Show("El número de boleto no puede tener más de 13 caracteres.");
+            }
+        }
+
+        private void txtClave_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                ValidarClaveYMostrarDatos();
+                e.SuppressKeyPress = true; 
+            }
+        }
+
+        private void ValidarClaveYMostrarDatos()
+        {
+            numeroBoleto = txtClave.Text.Trim();
+            var datos = daoDatos.ObtenerDatosPasajero(numeroBoleto);
+
+            if (datos != null)
+            {
+                string vueloSeleccionado = cmbVuelos.SelectedItem?.ToString();
+
+                if (!string.IsNullOrEmpty(vueloSeleccionado) && datos.Vuelo.NumeroVuelo != vueloSeleccionado)
+                {
+                    MessageBox.Show("El pasajero no pertenece a este vuelo.");
+                    txtClave.Clear();
+                    txtNombre.Clear();
+                    txtAsiento.Clear();
+                    return;
+                }
+
+                txtNombre.Text = datos.Pasajero.NombreCompleto;
+                txtAsiento.Text = datos.NumeroAsiento;
+            }
+            else
+            {
+                txtNombre.Text = "";
+                txtAsiento.Text = "";
+            }
+        }
+
+        private void txtClave_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            /*
+            if (e.KeyChar == (char)Keys.Enter)
+            {
+                ValidarClaveYMostrarDatos();
+                e.Handled = true;
+            }
+            */
+        }
     }
 
 }
